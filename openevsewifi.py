@@ -291,3 +291,23 @@ class Charger:
     command = '$GV'
     version = self.sendCommand(command)
     return version[2]
+
+  def disable(self):
+      """Disables the Charger"""
+      command = '$FD'
+      self.sendCommand(command)
+
+  def enable(self):
+      """Enables the Charger"""
+      command = '$FE'
+      self.sendCommand(command)
+
+  def reset(self):
+      """Resets the Charger"""
+      command = '$FR'
+      self.sendCommand(command)
+
+  def sleep(self):
+      """Puts the Charger in sleep mode"""
+      command = '$FS'
+      self.sendCommand(command)
