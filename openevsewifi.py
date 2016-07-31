@@ -2,7 +2,6 @@ import urllib.request
 import urllib.parse
 import re
 import datetime
-import pdb
 
 _version = '0.1'
 
