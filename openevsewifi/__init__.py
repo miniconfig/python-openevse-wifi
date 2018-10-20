@@ -33,7 +33,9 @@ class Charger:
     data = { 'rapi' : command }
     full_url = self.url + urllib.parse.urlencode(data)
     data = urllib.request.urlopen(full_url)
-    response = re.search('\>\>\$(.+)\<p>', data.read().decode('utf-8'))
+    response = re.search('\<p>&gt;\$(.+)\<script', data.read().decode('utf-8'))
+    if response == None:#If we are using version 1 - https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
+      response = re.search('\>\>\$(.+)\<p>', data.read().decode('utf-8'))
     return response.group(1).split()
 
   def getStatus(self):
