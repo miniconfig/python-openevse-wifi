@@ -1,6 +1,5 @@
-import urllib.request
-import urllib.parse
 import re
+import requests
 import datetime
 
 from typing import (
@@ -36,12 +35,10 @@ class Charger:
   def sendCommand(self, command: str) -> List[str]:
     """Sends a command through the web interface of the charger and parses the response"""
     data = { 'rapi' : command }
-    full_url = self.url + urllib.parse.urlencode(data)
-    data = urllib.request.urlopen(full_url)
-    content = data.read().decode('utf-8')
-    response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', content)
+    content = requests.post(self.url, data=data)
+    response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', content.text)
     if response == None:#If we are using version 1 - https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
-      response = re.search('\\>\\>\\$(.+)\\<p>', content)
+      response = re.search('\\>\\>\\$(.+)\\<p>', content.text)
     return response.group(1).split()
 
   def getStatus(self) -> str:
