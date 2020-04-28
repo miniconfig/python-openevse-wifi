@@ -7,6 +7,7 @@ authors = ["Michelle Avery <dev@miniconfig.com>"]
 [tool.poetry.dependencies]
 python = "^3.5"
 requests = "^2.23.0"
+pytest-cov = "^2.8.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.1"
