@@ -18,4 +18,4 @@ jobs:
       with:
         python_version: 3.8.0
         poetry_version: 0.12.17
-        args: run python -m pytest --cov=src --cov-branch --cov-fail-under=100 tests/
+        args: run python -m pytest --cov=openevsewifi --cov-branch --cov-fail-under=85 tests/
