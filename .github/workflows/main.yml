@@ -18,4 +18,8 @@ jobs:
       with:
         python_version: 3.8.0
         poetry_version: 0.12.17
-        args: run python -m pytest --cov=openevsewifi --cov-branch --cov-fail-under=85 tests/
+        args: run python -m pytest --cov=openevsewifi --cov-report=xml --cov-branch --cov-fail-under=85 tests/
+    - name: Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml # optional
