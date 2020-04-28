@@ -189,14 +189,14 @@ class Charger:
     command = '$GG'
     currentAndVoltage = self.sendCommand(command)
     amps = float(currentAndVoltage[1])/1000
-    return amps
+    return amps if amps > 0 else 0.0
 
   def getChargingVoltage(self) -> float:
     """Returns the charging voltage, in volts, or 0.0 of not charging"""
     command = '$GG'
     currentAndVoltage = self.sendCommand(command)
     volts = float(currentAndVoltage[2])/1000
-    return volts
+    return volts if volts > 0 else 0.0
 
   def getChargeLimit(self) -> int:
     """Returns the charge limit in kWh"""
