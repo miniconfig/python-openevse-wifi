@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "openevsewifi"
+version = "0.6.0"
+description = "A python library for communicating with the ESP8266-based wifi module from OpenEVSE"
+authors = ["Michelle Avery <dev@miniconfig.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.5"
+requests = "^2.23.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.1"
+requests-mock = "^1.7.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
