@@ -50,13 +50,21 @@ jobs:
         prerelease: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Add TestPyPI for poetry
+      uses: abatilo/actions-poetry@v1.5.0
+      with:
+        python_version: 3.8.0
+        poetry_version: 0.12.17
+        args: config repositories.testpypi https://test.pypi.org/legacy/
     - name: Publish Beta to TestPyPI
       if: contains(github.ref, 'beta')
       env:
         POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
-      run: |
-        poetry config repositories.testpypi https://test.pypi.org/legacy/
-        poetry publish -r testpypi
+      uses: abatilo/actions-poetry@v1.5.0
+      with:
+        python_version: 3.8.0
+        poetry_version: 0.12.17
+        args: publish -r testpypi
     - name: Publish Production Release to GitHub
       uses: softprops/action-gh-release@v0.1.5
       if: contains(github.ref, 'beta') == false
@@ -69,5 +77,8 @@ jobs:
       if: contains(github.ref, 'beta') == false
       env: 
         POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-      run: |
-        poetry publish
+      uses: abatilo/actions-poetry@v1.5.0
+      with:
+        python_version: 3.8.0
+        poetry_version: 0.12.17
+        args: poetry publish
