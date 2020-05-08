@@ -59,8 +59,8 @@ jobs:
     - name: Publish Beta to TestPyPI
       if: contains(github.ref, 'beta')
       env:
-        POETRY_HTTP_BASIC_TESTPYPI_USERNAME:__token__
-        POETRY_HTTP_BASIC_TESTPYPI_PASSWORD:${{ secrets.TEST_PYPI_TOKEN }}
+        POETRY_HTTP_BASIC_TESTPYPI_USERNAME: __token__
+        POETRY_HTTP_BASIC_TESTPYPI_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
       uses: abatilo/actions-poetry@v1.5.0
       with:
         python_version: 3.8.0
@@ -77,8 +77,8 @@ jobs:
     - name: Publish Production Release to PyPI
       if: contains(github.ref, 'beta') == false
       env: 
-        POETRY_HTTP_BASIC_PYPI_USERNAME:__token__ 
-        POETRY_HTTP_BASIC_PYPI_PASSWORD:${{ secrets.PYPI_TOKEN }}
+        POETRY_HTTP_BASIC_PYPI_USERNAME: __token__ 
+        POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       uses: abatilo/actions-poetry@v1.5.0
       with:
         python_version: 3.8.0
