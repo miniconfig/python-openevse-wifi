@@ -21,7 +21,7 @@ jobs:
         source $HOME/.poetry/env
         poetry run python -m pytest --cov=openevsewifi --cov-report=xml --cov-branch --cov-fail-under=85 tests/
     - name: Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v1.0.5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
