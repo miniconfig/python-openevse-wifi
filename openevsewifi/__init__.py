@@ -1,10 +1,12 @@
-import urllib.request
-import urllib.parse
 import re
+import requests
 import datetime
-import json
 
-_version = '0.6'
+from typing import (
+  List,
+  Optional
+)
+
 
 states = {
         0: 'unknown',
@@ -22,314 +24,279 @@ states = {
         255: 'disabled'
 }
 
-
-def json_parser(s):
-    try:
-        result = json.loads(s)
-    except:
-        return None
-    return parse_checksum(result["ret"])
-
-
-# this was the original parser, left in for backwards compatibility
-def xml_parser(s):
-    response = re.search('\<p>&gt;(\$.+)\<script', s.decode('utf-8'))
-    if response == None:#If we are using version 1 - https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
-      response = re.search('\>\>(\$.+)\<p>', datas.decode('utf-8'))
-    return parse_checksum(response.group(1))
-
-
-def parse_checksum(s):
-    """
-    If there is a '^' in given string s, this checks that the xor of utf8 bytes
-    before the '^' equal the hex value specified after '^'.  It returns the
-    string before the '^' on success, None on error.
-
-    If there is no '^' in the string, the string is returned.
-    """
-    spl = s.rsplit('^', 1)
-    if len(spl) == 1:
-        return s
-    try:
-        check = int(spl[1], 16)
-    except:
-        return None
-    datsum = 0
-    for c in spl[0].encode('utf-8'):
-        datsum ^= c
-    if datsum != check:
-        return None
-    return spl[0]
+colors = ['off', 'red', 'green', 'yellow', 'blue', 'violet', 'teal', 'white']
 
 
 class Charger:
-  def __init__(self, host, use_json=True):
-    """A connection to an OpenEVSE charging station equipped with the wifi kit."""
-    if use_json:
-        self.url = 'http://' + host + '/r?json=1&'
-        self.parseResult = json_parser
-    else:
+    def __init__(self, host: str):
+        """A connection to an OpenEVSE charging station equipped with the wifi kit."""
         self.url = 'http://' + host + '/r?'
-        self.parseResult = xml_parser
 
-  def sendCommand(self, command):
-    """Sends a command through the web interface of the charger and parses the response"""
-    data = { 'rapi' : command }
-    full_url = self.url + urllib.parse.urlencode(data)
-    data = urllib.request.urlopen(full_url)
-    return self.parseResult(data.read()).split()
+    def sendCommand(self, command: str) -> List[str]:
+        """Sends a command through the web interface of the charger and parses the response"""
+        data = {'rapi': command}
+        content = requests.post(self.url, data=data)
+        response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', content.text)
+        # If we are using version 1
+        # https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
+        if response is None:
+            response = re.search('\\>\\>\\$(.+)\\<p>', content.text)
+        return response.group(1).split()
 
-  def getStatus(self):
-    """Returns the charger's charge status, as a string"""
-    command = '$GS'
-    status = self.sendCommand(command)
-    return states[int(status[1])]
+    def getStatus(self) -> str:
+        """Returns the charger's charge status, as a string"""
+        command = '$GS'
+        status = self.sendCommand(command)
+        return states[int(status[1])]
 
-  def getChargeTimeElapsed(self):
-    """Returns the charge time elapsed (in seconds), or 0 if is not currently charging"""
-    command = '$GS'
-    status = self.sendCommand(command)
-    if int(status[1]) == 3:
-      return int(status[2])
-    else:
-      return 0
+    def getChargeTimeElapsed(self) -> int:
+        """Returns the charge time elapsed (in seconds), or 0 if is not currently charging"""
+        command = '$GS'
+        status = self.sendCommand(command)
+        if int(status[1]) == 3:
+            return int(status[2])
+        else:
+            return 0
 
-  def getTimeLimit(self):
-    """Returns the time limit in minutes or 0 if no limit is set"""
-    command = '$G3'
-    limit = self.sendCommand(command)
-    return int(limit[1])*15
+    def getTimeLimit(self) -> int:
+        """Returns the time limit in minutes or 0 if no limit is set"""
+        command = '$G3'
+        limit = self.sendCommand(command)
+        return int(limit[1])*15
 
-  def getAmmeterScaleFactor(self):
-    """Returns the ammeter's current scale factor"""
-    command = '$GA'
-    settings = self.sendCommand(command)
-    return int(settings[1])
+    def getAmmeterScaleFactor(self) -> int:
+        """Returns the ammeter's current scale factor"""
+        command = '$GA'
+        settings = self.sendCommand(command)
+        return int(settings[1])
 
-  def getAmmeterOffset(self):
-    """Returns the ammeter's current offset"""
-    command = '$GA'
-    settings = self.sendCommand(command)
-    return int(settings[2])
+    def getAmmeterOffset(self) -> int:
+        """Returns the ammeter's current offset"""
+        command = '$GA'
+        settings = self.sendCommand(command)
+        return int(settings[2])
 
-  def getMinAmps(self):
-    """Returns the capacity range minimum, in amps"""
-    command = '$GC'
-    caprange = self.sendCommand(command)
-    return int(caprange[1])
+    def getMinAmps(self) -> int:
+        """Returns the capacity range minimum, in amps"""
+        command = '$GC'
+        caprange = self.sendCommand(command)
+        return int(caprange[1])
 
-  def getMaxAmps(self):
-    """Returns the capacity range maximum, in amps"""
-    command = '$GC'
-    caprange = self.sendCommand(command)
-    return int(caprange[2])
+    def getMaxAmps(self) -> int:
+        """Returns the capacity range maximum, in amps"""
+        command = '$GC'
+        caprange = self.sendCommand(command)
+        return int(caprange[2])
 
-  def getCurrentCapacity(self):
-    """Returns the current capacity, in amps"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    return int(settings[1])
+    def getCurrentCapacity(self) -> int:
+        """Returns the current capacity, in amps"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        return int(settings[1])
 
-  def getServiceLevel(self):
-    """Returns the service level"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return (flags & 0x0001) + 1
+    def getServiceLevel(self) -> int:
+        """Returns the service level"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return (flags & 0x0001) + 1
 
-  def getDiodeCheckEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0002)
+    def getDiodeCheckEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0002)
 
-  def getVentRequiredEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0004)
+    def getVentRequiredEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0004)
 
-  def getGroundCheckEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0008)
+    def getGroundCheckEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0008)
 
-  def getStuckRelayCheckEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0010)
+    def getStuckRelayCheckEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0010)
 
-  def getAutoServiceLevelEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0020)
+    def getAutoServiceLevelEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0020)
 
-  def getAutoStartEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0040)
+    def getAutoStartEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0040)
 
-  def getSerialDebugEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0080)
+    def getSerialDebugEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0080)
 
-  def getLCDType(self):
-    """Returns LCD type as a string, either monochrome or rgb"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    if flags & 0x0100:
-      lcdtype = 'monochrome'
-    else:
-      lcdtype = 'rgb'
-    return lcdtype
+    def getLCDType(self) -> str:
+        """Returns LCD type as a string, either monochrome or rgb"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        if flags & 0x0100:
+            lcdtype = 'monochrome'
+        else:
+            lcdtype = 'rgb'
+        return lcdtype
 
-  def getGFISelfTestEnabled(self):
-    """Returns True if enabled, False if disabled"""
-    command = '$GE'
-    settings = self.sendCommand(command)
-    flags = int(settings[2], 16)
-    return not (flags & 0x0200)
+    def getGFISelfTestEnabled(self) -> bool:
+        """Returns True if enabled, False if disabled"""
+        command = '$GE'
+        settings = self.sendCommand(command)
+        flags = int(settings[2], 16)
+        return not (flags & 0x0200)
 
-  def getGFITripCount(self):
-    """Returns GFI Trip Count, as integer"""
-    command = '$GF'
-    faults = self.sendCommand(command)
-    return faults[1]
+    def getGFITripCount(self) -> int:
+        """Returns GFI Trip Count, as integer"""
+        command = '$GF'
+        faults = self.sendCommand(command)
+        return int(faults[1])
 
-  def getNoGndTripCount(self):
-    """Returns No Ground Trip Count, as integer"""
-    command = '$GF'
-    faults = self.sendCommand(command)
-    return faults[2]
+    def getNoGndTripCount(self) -> int:
+        """Returns No Ground Trip Count, as integer"""
+        command = '$GF'
+        faults = self.sendCommand(command)
+        return int(faults[2])
 
-  def getStuckRelayTripCount(self):
-    """Returns Stuck Relay Trip Count, as integer"""
-    command = '$GF'
-    faults = self.sendCommand(command)
-    return faults[3]
+    def getStuckRelayTripCount(self) -> int:
+        """Returns Stuck Relay Trip Count, as integer"""
+        command = '$GF'
+        faults = self.sendCommand(command)
+        return int(faults[3])
 
-  def getChargingCurrent(self):
-    """Returns the charging current, in amps, or 0.0 of not charging"""
-    command = '$GG'
-    currentAndVoltage = self.sendCommand(command)
-    amps = float(currentAndVoltage[1])/1000
-    return amps
+    def getChargingCurrent(self) -> float:
+        """Returns the charging current, in amps, or 0.0 of not charging"""
+        command = '$GG'
+        current_and_voltage = self.sendCommand(command)
+        amps = float(current_and_voltage[1])/1000
+        return amps if amps > 0 else 0.0
 
-  def getChargingVoltage(self):
-    """Returns the charging voltage, in volts, or 0.0 of not charging"""
-    command = '$GG'
-    currentAndVoltage = self.sendCommand(command)
-    volts = float(currentAndVoltage[2])/1000
-    return volts
+    def getChargingVoltage(self) -> float:
+        """Returns the charging voltage, in volts, or 0.0 of not charging"""
+        command = '$GG'
+        current_and_voltage = self.sendCommand(command)
+        volts = float(current_and_voltage[2])/1000
+        return volts if volts > 0 else 0.0
 
-  def getChargeLimit(self):
-    """Returns the charge limit in kWh"""
-    command = '$GH'
-    limit = self.sendCommand(command)
-    return limit[1]
+    def getChargeLimit(self) -> int:
+        """Returns the charge limit in kWh"""
+        command = '$GH'
+        limit = self.sendCommand(command)
+        return int(limit[1])
 
-  def getVoltMeterScaleFactor(self):
-    """Returns the voltmeter scale factor, or 0 if there is no voltmeter"""
-    command = '$GM'
-    voltMeterSettings = self.sendCommand(command)
-    if voltMeterSettings[0] == '$NK':
-      return 0
-    else:
-      return voltMeterSettings[1]
+    def getVoltMeterScaleFactor(self) -> int:
+        """Returns the voltmeter scale factor, or 0 if there is no voltmeter"""
+        command = '$GM'
+        volt_meter_settings = self.sendCommand(command)
+        if volt_meter_settings[0] == 'NK':
+            return 0
+        else:
+            return int(volt_meter_settings[1])
 
-  def getVoltMeterOffset(self):
-    """Returns the voltmeter offset, or 0 if there is no voltmeter"""
-    command = '$GM'
-    voltMeterSettings = self.sendCommand(command)
-    if voltMeterSettings[0] == '$NK':
-      return 0
-    else:
-      return voltMeterSettings[2]
+    def getVoltMeterOffset(self) -> int:
+        """Returns the voltmeter offset, or 0 if there is no voltmeter"""
+        command = '$GM'
+        volt_meter_settings = self.sendCommand(command)
+        if volt_meter_settings[0] == 'NK':
+            return 0
+        else:
+            return int(volt_meter_settings[2])
 
-  def getAmbientThreshold(self):
-    """Returns the ambient temperature threshold in degrees Celcius, or 0 if no Threshold is set"""
-    command = '$GO'
-    threshold = self.sendCommand(command)
-    if threshold[0] == '$NK':
-      return 0
-    else:
-      return float(threshold[1])/10
+    def getAmbientThreshold(self) -> float:
+        """Returns the ambient temperature threshold in degrees Celcius, or 0 if no Threshold is set"""
+        command = '$GO'
+        threshold = self.sendCommand(command)
+        if threshold[0] == 'NK':
+            return 0.0
+        else:
+            return float(threshold[1])/10
 
-  def getIRThreshold(self):
-    """Returns the IR temperature threshold in degrees Celcius, or 0 if no Threshold is set"""
-    command = '$GO'
-    threshold = self.sendCommand(command)
-    if threshold[0] == '$NK':
-      return 0
-    else:
-      return float(threshold[2])/10
+    def getIRThreshold(self) -> float:
+        """Returns the IR temperature threshold in degrees Celcius, or 0 if no Threshold is set"""
+        command = '$GO'
+        threshold = self.sendCommand(command)
+        if threshold[0] == 'NK':
+            return 0.0
+        else:
+            return float(threshold[2])/10
 
-  def getRTCTemperature(self):
-    """Returns the temperature of the real time clock sensor (DS3231), in degrees Celcius, or 0.0 if sensor is not installed"""
-    command = '$GP'
-    temperature = self.sendCommand(command)
-    return float(temperature[1])/10
+    def getRTCTemperature(self) -> float:
+        """Returns the temperature of the real time clock sensor (DS3231), in degrees Celcius, or 0.0 if sensor is not
+        installed"""
+        command = '$GP'
+        temperature = self.sendCommand(command)
+        return float(temperature[1])/10
 
-  def getAmbientTemperature(self):
-    """Returns the temperature of the ambient sensor (MCP9808), in degrees Celcius, or 0.0 if sensor is not installed"""
-    command = '$GP'
-    temperature = self.sendCommand(command)
-    return float(temperature[2])/10
+    def getAmbientTemperature(self) -> float:
+        """Returns the temperature of the ambient sensor (MCP9808), in degrees Celcius, or 0.0 if sensor is not
+        installed"""
+        command = '$GP'
+        temperature = self.sendCommand(command)
+        return float(temperature[2])/10
 
-  def getIRTemperature(self):
-    """Returns the temperature of the IR remote sensor (TMP007), in degrees Celcius, or 0.0 if sensor is not installed"""
-    command = '$GP'
-    temperature = self.sendCommand(command)
-    return float(temperature[3])/10
+    def getIRTemperature(self) -> float:
+        """Returns the temperature of the IR remote sensor (TMP007), in degrees Celcius, or 0.0 if sensor is not
+        installed"""
+        command = '$GP'
+        temperature = self.sendCommand(command)
+        return float(temperature[3])/10
 
-  def getTime(self):
-    """Get the RTC time.  Returns a datetime object, or NULL if the clock is not set"""
-    command = '$GT'
-    time = self.sendCommand(command)
-    if time == ['$OK','165', '165', '165', '165', '165', '85']:
-      return NULL
-    else:
-      return datetime.datetime(year = int(time[1])+2000,
-                               month = int(time[2]),
-                               day = int(time[3]),
-                               hour = int(time[4]),
-                               minute = int(time[5]),
-                               second = int(time[6]))
+    def getTime(self) -> Optional[datetime.datetime]:
+        """Get the RTC time.  Returns a datetime object, or NULL if the clock is not set"""
+        command = '$GT'
+        time = self.sendCommand(command)
+        if time == ['OK', '165', '165', '165', '165', '165', '85']:
+            return None
+        else:
+            return datetime.datetime(year=int(time[1])+2000,
+                                     month=int(time[2]),
+                                     day=int(time[3]),
+                                     hour=int(time[4]),
+                                     minute=int(time[5]),
+                                     second=int(time[6]))
 
-  def getUsageSession(self):
-    """Get the energy usage for the current charging session.  Returns the energy usage in Wh"""
-    command = '$GU'
-    usage = self.sendCommand(command)
-    return float(usage[1])/3600
+    def getUsageSession(self) -> float:
+        """Get the energy usage for the current charging session.  Returns the energy usage in Wh"""
+        command = '$GU'
+        usage = self.sendCommand(command)
+        return float(usage[1])/3600
 
-  def getUsageTotal(self):
-    """Get the total energy usage.  Returns the energy usage in Wh"""
-    command = '$GU'
-    usage = self.sendCommand(command)
-    return float(usage[2])
+    def getUsageTotal(self) -> float:
+        """Get the total energy usage.  Returns the energy usage in Wh"""
+        command = '$GU'
+        usage = self.sendCommand(command)
+        return float(usage[2])
 
-  def getFirmwareVersion(self):
-    """Returns the Firmware Version, as a string"""
-    command = '$GV'
-    version = self.sendCommand(command)
-    return version[1]
+    def getFirmwareVersion(self) -> str:
+        """Returns the Firmware Version, as a string"""
+        command = '$GV'
+        version = self.sendCommand(command)
+        return version[1]
 
-  def getProtocolVersion(self):
-    """Returns the Protocol Version, as a string"""
-    command = '$GV'
-    version = self.sendCommand(command)
-    return version[2]
+    def getProtocolVersion(self) -> str:
+        """Returns the Protocol Version, as a string"""
+        command = '$GV'
+        version = self.sendCommand(command)
+        return version[2]
