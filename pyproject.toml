@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openevsewifi"
-version = "0.6.1"
+version = "1.0.0"
 description = "A python library for communicating with the ESP8266-based wifi module from OpenEVSE"
 authors = ["Michelle Avery <dev@miniconfig.com>"]
 license = "MIT"
@@ -11,6 +11,7 @@ repository = "https://github.com/miniconfig/python-openevse-wifi"
 python = "^3.5"
 requests = "^2.23.0"
 pytest-cov = "^2.8.1"
+Deprecated = "^1.2.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4.1"
