@@ -76,17 +76,17 @@ class Charger:
     def __init__(self, host: str, json=False):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
         if json:
-            self.url = 'http://' + host + '/r?json=1&'
-            self.parseResult = json_parser
+            self._url = 'http://' + host + '/r?json=1&'
+            self._parseResult = json_parser
         else:
-            self.url = 'http://' + host + '/r?'
-            self.parseResult = xml_parser
+            self._url = 'http://' + host + '/r?'
+            self._parseResult = xml_parser
 
     def _send_command(self, command: str) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
-        content = requests.post(self.url, data=data)
-        return self.parseResult(content.text)
+        content = requests.post(self._url, data=data)
+        return self._parseResult(content.text)
 
     @deprecated(reason='Use the status property')
     def getStatus(self) -> str:
