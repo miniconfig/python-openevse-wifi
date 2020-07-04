@@ -1,6 +1,7 @@
 import re
 import requests
 import datetime
+import json
 
 from typing import (
   List,
@@ -26,7 +27,6 @@ states = {
 
 colors = ['off', 'red', 'green', 'yellow', 'blue', 'violet', 'teal', 'white']
 
-
 def parse_checksum(s):
     """
     If there is a '^' in given string s, this checks that the xor of utf8 bytes
@@ -49,22 +49,43 @@ def parse_checksum(s):
         return None
     return spl[0]
 
+def json_parser(s):
+    print("json: ", s)
+    try:
+        result = json.loads(s)
+        print("result: ", result)
+        parsed = parse_checksum(result["ret"])
+        if parsed is not None:
+            parsed = parsed[1:] # strip of leading $
+            parsed = parsed.split()
+        return parsed
+    except Exception as e:
+        print(e)
+        return None
+
+def xml_parser(s):
+    response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', s)
+    # If we are using version 1
+    # https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
+    if response is None:
+        response = re.search('\\>\\>\\$(.+)\\<p>', s)
+    return response.group(1).split()
 
 class Charger:
-    def __init__(self, host: str):
+    def __init__(self, host: str, json=False):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
-        self.url = 'http://' + host + '/r?'
+        if json:
+            self.url = 'http://' + host + '/r?json=1&'
+            self.parseResult = json_parser
+        else:
+            self.url = 'http://' + host + '/r?'
+            self.parseResult = xml_parser
 
     def sendCommand(self, command: str) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
         content = requests.post(self.url, data=data)
-        response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', content.text)
-        # If we are using version 1
-        # https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
-        if response is None:
-            response = re.search('\\>\\>\\$(.+)\\<p>', content.text)
-        return response.group(1).split()
+        return self.parseResult(content.text)
 
     def getStatus(self) -> str:
         """Returns the charger's charge status, as a string"""

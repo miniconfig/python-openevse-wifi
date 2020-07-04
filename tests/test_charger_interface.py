@@ -11,6 +11,14 @@ def test_get_status(test_charger, requests_mock, fixture, expected):
     status = test_charger.getStatus()
     assert status == expected
 
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/status_unplugged.txt', 'not connected'),
+                          ('v3_responses/status_connected.txt', 'connected'), ])
+def test_get_status_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json.url, text=load_fixture(fixture))
+    status = test_charger_json.getStatus()
+    assert status == expected
+
 
 @pytest.mark.parametrize('fixture, expected',
                          [('v1_responses/status_unplugged.txt', 0),
@@ -18,6 +26,13 @@ def test_get_status(test_charger, requests_mock, fixture, expected):
 def test_get_charge_time_elapsed(test_charger, requests_mock, fixture, expected):
     requests_mock.post(test_charger.url, text=load_fixture(fixture))
     charge_time = test_charger.getChargeTimeElapsed()
+    assert charge_time == expected
+
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/status_unplugged.txt', 0)])
+def test_get_charge_time_elapsed_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json.url, text=load_fixture(fixture))
+    charge_time = test_charger_json.getChargeTimeElapsed()
     assert charge_time == expected
 
 
@@ -29,6 +44,14 @@ def test_get_time_limit(test_charger, requests_mock, fixture, expected):
     time_limit = test_charger.getTimeLimit()
     assert time_limit == expected
 
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/time_limit_unset.txt', 0),
+                          ('v3_responses/time_limit_set.txt', 15)])
+def test_get_time_limit_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json.url, text=load_fixture(fixture))
+    time_limit = test_charger_json.getTimeLimit()
+    assert time_limit == expected
+
 
 def test_get_ammeter_scale_factor(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/ammeter.txt'))
@@ -36,7 +59,19 @@ def test_get_ammeter_scale_factor(test_charger, requests_mock):
     assert scale_factor == 220
 
 
-def test_get_ammeter_offsset(test_charger, requests_mock):
+def test_get_ammeter_scale_factor_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/ammeter.txt'))
+    scale_factor = test_charger_json.getAmmeterScaleFactor()
+    assert scale_factor == 220
+
+
+def test_get_ammeter_offset(test_charger, requests_mock):
+    requests_mock.post(test_charger.url, text=load_fixture('v1_responses/ammeter.txt'))
+    offset = test_charger.getAmmeterOffset()
+    assert offset == 0
+
+
+def test_get_ammeter_offset_v3(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/ammeter.txt'))
     offset = test_charger.getAmmeterOffset()
     assert offset == 0
@@ -48,9 +83,21 @@ def test_get_min_amps(test_charger, requests_mock):
     assert amps == 6
 
 
+def test_get_min_amps_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/capacity_range.txt'))
+    amps = test_charger_json.getMinAmps()
+    assert amps == 6
+
+
 def test_get_max_amps(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/capacity_range.txt'))
     amps = test_charger.getMaxAmps()
+    assert amps == 80
+
+
+def test_get_max_amps_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/capacity_range.txt'))
+    amps = test_charger_json.getMaxAmps()
     assert amps == 80
 
 
@@ -60,9 +107,21 @@ def test_get_current_capacity(test_charger, requests_mock):
     assert amps == 50
 
 
+def test_get_current_capacity_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    amps = test_charger_json.getCurrentCapacity()
+    assert amps == 30
+
+
 def test_get_service_level(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/settings.txt'))
     level = test_charger.getServiceLevel()
+    assert level == 2
+
+
+def test_get_service_level_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    level = test_charger_json.getServiceLevel()
     assert level == 2
 
 
@@ -72,9 +131,21 @@ def test_get_diode_check_enabled(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_diode_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getDiodeCheckEnabled()
+    assert enabled is True
+
+
 def test_get_vent_required_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.getVentRequiredEnabled()
+    assert enabled is True
+
+
+def test_get_vent_required_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getVentRequiredEnabled()
     assert enabled is True
 
 
@@ -84,9 +155,21 @@ def test_get_ground_check_enabled(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_ground_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getGroundCheckEnabled()
+    assert enabled is True
+
+
 def test_get_stuck_relay_check_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.getGroundCheckEnabled()
+    assert enabled is True
+
+
+def test_get_stuck_relay_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getGroundCheckEnabled()
     assert enabled is True
 
 
@@ -96,9 +179,21 @@ def test_get_auto_service_level_enabled(test_charger, requests_mock):
     assert enabled is False
 
 
+def test_get_auto_service_level_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getAutoServiceLevelEnabled()
+    assert enabled
+
+
 def test_get_auto_start_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.getAutoStartEnabled()
+    assert enabled is True
+
+
+def test_get_auto_start_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getAutoStartEnabled()
     assert enabled is True
 
 
@@ -108,9 +203,21 @@ def test_get_serial_debug_enabled(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_serial_debug_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getDiodeCheckEnabled()
+    assert enabled is True
+
+
 def test_get_lcd_type(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/settings.txt'))
     lcd_type = test_charger.getLCDType()
+    assert lcd_type == 'rgb'
+
+
+def test_get_lcd_type_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    lcd_type = test_charger_json.getLCDType()
     assert lcd_type == 'rgb'
 
 
@@ -120,9 +227,21 @@ def test_get_gfi_self_test_enabled(test_charger, requests_mock):
     assert enabled is False
 
 
+def test_get_gfi_self_test_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.getGFISelfTestEnabled()
+    assert enabled
+
+
 def test_get_gfi_trip_count(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/faults.txt'))
     count = test_charger.getGFITripCount()
+    assert count == 0
+
+
+def test_get_gfi_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.getGFITripCount()
     assert count == 0
 
 
@@ -132,9 +251,21 @@ def test_get_no_ground_trip_count(test_charger, requests_mock):
     assert count == 9
 
 
+def test_get_no_ground_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.getNoGndTripCount()
+    assert count == 0
+
+
 def test_get_stuck_relay_trip_count(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/faults.txt'))
     count = test_charger.getStuckRelayTripCount()
+    assert count == 0
+
+
+def test_get_stuck_relay_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.getStuckRelayTripCount()
     assert count == 0
 
 
@@ -164,9 +295,21 @@ def test_get_charge_limit(test_charger, requests_mock):
     assert limit == 0
 
 
+def test_get_charge_limit_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/charge_limit.txt'))
+    limit = test_charger_json.getChargeLimit()
+    assert limit == 0
+
+
 def test_get_voltmeter_scale_factor(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/voltmeter_settings.txt'))
     scale = test_charger.getVoltMeterScaleFactor()
+    assert scale == 0
+
+
+def test_get_voltmeter_scale_factor_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/voltmeter_settings.txt'))
+    scale = test_charger_json.getVoltMeterScaleFactor()
     assert scale == 0
 
 
@@ -176,9 +319,22 @@ def test_get_voltmeter_offset(test_charger, requests_mock):
     assert offset == 0
 
 
+def test_get_voltmeter_offset_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/voltmeter_settings.txt'))
+    offset = test_charger_json.getVoltMeterOffset()
+    assert offset == 0
+
+
 def test_get_ambient_threshold(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/temperature_settings.txt'))
     threshold = test_charger.getAmbientThreshold()
+    assert threshold == 0.0
+    assert type(threshold) == float
+
+
+def test_get_ambient_threshold_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/temperature_settings.txt'))
+    threshold = test_charger_json.getAmbientThreshold()
     assert threshold == 0.0
     assert type(threshold) == float
 
@@ -190,6 +346,13 @@ def test_get_ir_threshold(test_charger, requests_mock):
     assert type(threshold) == float
 
 
+def test_get_ir_threshold_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/temperature_settings.txt'))
+    threshold = test_charger_json.getIRThreshold()
+    assert threshold == 0.0
+    assert type(threshold) == float
+
+
 def test_get_rtc_temperature(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/temperature_values.txt'))
     temperature = test_charger.getRTCTemperature()
@@ -197,10 +360,24 @@ def test_get_rtc_temperature(test_charger, requests_mock):
     assert type(temperature) == float
 
 
+def test_get_rtc_temperature_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/temperature_values.txt'))
+    temperature = test_charger_json.getRTCTemperature()
+    assert temperature == 58.0
+    assert type(temperature) == float
+
+
 def test_get_ambient_temperature(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/temperature_values.txt'))
     temperature = test_charger.getAmbientTemperature()
     assert temperature == 0.0
+    assert type(temperature) == float
+
+
+def test_get_ambient_temperature_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/temperature_values.txt'))
+    temperature = test_charger_json.getAmbientTemperature()
+    assert temperature == 57.0
     assert type(temperature) == float
 
 
@@ -217,12 +394,27 @@ def test_get_time(test_charger, requests_mock):
     assert str(time) == '2000-01-20 08:34:29'
 
 
+def test_get_time_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/time.txt'))
+    time = test_charger_json.getTime()
+    assert str(time) == '2000-02-19 01:40:47'
+
+
 @pytest.mark.parametrize('fixture, expected',
                          [('v1_responses/usage_unplugged.txt', 0.0),
                           ('v1_responses/usage_charging.txt', 779.8663888888889)])
 def test_get_usage_session(test_charger, requests_mock, fixture, expected):
     requests_mock.post(test_charger.url, text=load_fixture(fixture))
     usage = test_charger.getUsageSession()
+    assert usage == expected
+    assert type(usage) == float
+
+
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/usage_plugged.txt', 0.0),])
+def test_get_usage_session_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json.url, text=load_fixture(fixture))
+    usage = test_charger_json.getUsageSession()
     assert usage == expected
     assert type(usage) == float
 
@@ -244,10 +436,24 @@ def test_get_firmware_version(test_charger, requests_mock):
     assert type(version) == str
 
 
+def test_get_firmware_version_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/version.txt'))
+    version = test_charger_json.getFirmwareVersion()
+    assert version == '5.0.1'
+    assert type(version) == str
+
+
 def test_get_protocol_version(test_charger, requests_mock):
     requests_mock.post(test_charger.url, text=load_fixture('v1_responses/version.txt'))
     version = test_charger.getProtocolVersion()
     assert version == '1.0.3'
+    assert type(version) == str
+
+
+def test_get_protocol_version_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json.url, text=load_fixture('v3_responses/version.txt'))
+    version = test_charger_json.getProtocolVersion()
+    assert version == '4.0.1'
     assert type(version) == str
 
 def test_checksum():
