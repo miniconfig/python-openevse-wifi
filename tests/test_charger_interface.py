@@ -249,3 +249,15 @@ def test_get_protocol_version(test_charger, requests_mock):
     version = test_charger.getProtocolVersion()
     assert version == '1.0.3'
     assert type(version) == str
+
+def test_checksum():
+    import openevsewifi
+    strings = ["$OK 1 0^21", "$OK 220 0^20", "$OK 30 0001^22", "$OK 0 -1^0C"]
+    for s in strings:
+        assert openevsewifi.parse_checksum(s) == s.split('^', 1)[0]
+    bad_checksums = ["$OK 1 0^22", "$OK 220 0^30", "$OK 30 0001^f2", "$OK 0 -1^1C"]
+    for s in bad_checksums:
+        assert openevsewifi.parse_checksum(s) is None
+    no_checksums = ["$OK 1 0", "$OK 220 0", "$OK 30 0001", "$OK 0 -1"]
+    for s in no_checksums:
+        assert openevsewifi.parse_checksum(s) == s

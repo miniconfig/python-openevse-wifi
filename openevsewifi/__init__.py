@@ -27,6 +27,29 @@ states = {
 colors = ['off', 'red', 'green', 'yellow', 'blue', 'violet', 'teal', 'white']
 
 
+def parse_checksum(s):
+    """
+    If there is a '^' in given string s, this checks that the xor of utf8 bytes
+    before the '^' equal the hex value specified after '^'.  It returns the
+    string before the '^' on success, None on error.
+
+    If there is no '^' in the string, the string is returned.
+    """
+    spl = s.rsplit('^', 1)
+    if len(spl) == 1:
+        return s
+    try:
+        check = int(spl[1], 16)
+    except:
+        return None
+    datsum = 0
+    for c in spl[0].encode('utf-8'):
+        datsum ^= c
+    if datsum != check:
+        return None
+    return spl[0]
+
+
 class Charger:
     def __init__(self, host: str):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
