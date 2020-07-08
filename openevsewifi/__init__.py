@@ -28,11 +28,20 @@ states = {
 
 colors = ['off', 'red', 'green', 'yellow', 'blue', 'violet', 'teal', 'white']
 
+
+class BadChecksum(Exception):
+    pass
+
+
+class BadResponse(Exception):
+    pass
+
+
 def parse_checksum(s):
     """
     If there is a '^' in given string s, this checks that the xor of utf8 bytes
     before the '^' equal the hex value specified after '^'.  It returns the
-    string before the '^' on success, None on error.
+    string before the '^' on success, and throws an BadChecksum exception on error.
 
     If there is no '^' in the string, the string is returned.
     """
@@ -42,27 +51,33 @@ def parse_checksum(s):
     try:
         check = int(spl[1], 16)
     except:
-        return None
+        raise BadChecksum(s)
     datsum = 0
     for c in spl[0].encode('utf-8'):
         datsum ^= c
     if datsum != check:
-        return None
+        raise BadChecksum(s)
     return spl[0]
 
+
 def json_parser(s):
-    print("json: ", s)
-    try:
-        result = json.loads(s)
-        print("result: ", result)
-        parsed = parse_checksum(result["ret"])
-        if parsed is not None:
-            parsed = parsed[1:] # strip of leading $
-            parsed = parsed.split()
-        return parsed
-    except Exception as e:
-        print(e)
-        return None
+    """
+    Parses the json string provided and checks that
+    the "ret" field has a valid checksum.
+
+    Throws JSONDecodeError if the json is invalid,
+    openevsewifi.BadChecksum if the checksum is invalid,
+    and openevsewifi.BadResponse if the expected "ret"
+    element is not present in the json dictionary.
+    """
+    result = json.loads(s)
+    if "ret" not in result:
+        raise BadResponse(s)
+    parsed = parse_checksum(result["ret"])
+    # for compatibility with xml_parser, strip off the leading $.
+    parsed = parsed[1:]
+    return parsed.split()
+
 
 def xml_parser(s):
     response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', s)
@@ -71,6 +86,7 @@ def xml_parser(s):
     if response is None:
         response = re.search('\\>\\>\\$(.+)\\<p>', s)
     return response.group(1).split()
+
 
 class Charger:
     def __init__(self, host: str, json=False):

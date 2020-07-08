@@ -634,9 +634,10 @@ def test_checksum():
     strings = ["$OK 1 0^21", "$OK 220 0^20", "$OK 30 0001^22", "$OK 0 -1^0C"]
     for s in strings:
         assert openevsewifi.parse_checksum(s) == s.split('^', 1)[0]
-    bad_checksums = ["$OK 1 0^22", "$OK 220 0^30", "$OK 30 0001^f2", "$OK 0 -1^1C"]
+    bad_checksums = ["$OK 1 0^22", "$OK 220 0^30", "$OK 30 0001^f2", "$OK 0 -1^1C", "00^yyy"]
     for s in bad_checksums:
-        assert openevsewifi.parse_checksum(s) is None
+        with pytest.raises(openevsewifi.BadChecksum):
+            openevsewifi.parse_checksum(s)
     no_checksums = ["$OK 1 0", "$OK 220 0", "$OK 30 0001", "$OK 0 -1"]
     for s in no_checksums:
         assert openevsewifi.parse_checksum(s) == s
