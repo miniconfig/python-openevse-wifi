@@ -50,7 +50,7 @@ def parse_checksum(s):
         return s
     try:
         check = int(spl[1], 16)
-    except:
+    except ValueError:
         raise BadChecksum(s)
     datsum = 0
     for c in spl[0].encode('utf-8'):
