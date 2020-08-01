@@ -23,6 +23,15 @@ def test_get_status(test_charger, requests_mock, fixture, expected):
 
 
 @pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/status_unplugged.txt', 'not connected'),
+                          ('v3_responses/status_connected.txt', 'connected'), ])
+def test_get_status_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json._url, text=load_fixture(fixture))
+    status = test_charger_json.status
+    assert status == expected
+
+
+@pytest.mark.parametrize('fixture, expected',
                          [('v1_responses/status_unplugged.txt', 0),
                           ('v1_responses/status_charging.txt', 568)])
 def test_get_charge_time_elapsed_deprecated(test_charger, requests_mock, fixture, expected):
@@ -38,6 +47,13 @@ def test_get_charge_time_elapsed_deprecated(test_charger, requests_mock, fixture
 def test_get_charge_time_elapsed(test_charger, requests_mock, fixture, expected):
     requests_mock.post(test_charger._url, text=load_fixture(fixture))
     charge_time = test_charger.charge_time_elapsed
+    assert charge_time == expected
+
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/status_unplugged.txt', 0)])
+def test_get_charge_time_elapsed_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json._url, text=load_fixture(fixture))
+    charge_time = test_charger_json.charge_time_elapsed
     assert charge_time == expected
 
 
@@ -59,6 +75,14 @@ def test_get_time_limit(test_charger, requests_mock, fixture, expected):
     time_limit = test_charger.time_limit
     assert time_limit == expected
 
+@pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/time_limit_unset.txt', 0),
+                          ('v3_responses/time_limit_set.txt', 15)])
+def test_get_time_limit_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json._url, text=load_fixture(fixture))
+    time_limit = test_charger_json.time_limit
+    assert time_limit == expected
+
 
 def test_get_ammeter_scale_factor_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
@@ -73,16 +97,27 @@ def test_get_ammeter_scale_factor(test_charger, requests_mock):
     assert scale_factor == 220
 
 
-def test_get_ammeter_offset_deprecated(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
-    with pytest.deprecated_call():
-        offset = test_charger.getAmmeterOffset()
-    assert offset == 0
+def test_get_ammeter_scale_factor_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/ammeter.txt'))
+    scale_factor = test_charger_json.ammeter_scale_factor
+    assert scale_factor == 220
 
 
 def test_get_ammeter_offset(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
     offset = test_charger.ammeter_offset
+    assert offset == 0
+
+
+def test_get_ammeter_offset_v3(test_charger, requests_mock):
+    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
+    offset = test_charger.ammeter_offset
+
+
+def test_get_ammeter_offset_deprecated(test_charger, requests_mock):
+    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
+    with pytest.deprecated_call():
+        offset = test_charger.getAmmeterOffset()
     assert offset == 0
 
 
@@ -99,6 +134,12 @@ def test_get_min_amps(test_charger, requests_mock):
     assert amps == 6
 
 
+def test_get_min_amps_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/capacity_range.txt'))
+    amps = test_charger_json.min_amps
+    assert amps == 6
+
+
 def test_get_max_amps_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/capacity_range.txt'))
     with pytest.deprecated_call():
@@ -106,9 +147,9 @@ def test_get_max_amps_deprecated(test_charger, requests_mock):
     assert amps == 80
 
 
-def test_get_max_amps(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/capacity_range.txt'))
-    amps = test_charger.max_amps
+def test_get_max_amps_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/capacity_range.txt'))
+    amps = test_charger_json.max_amps
     assert amps == 80
 
 
@@ -119,10 +160,10 @@ def test_get_current_capacity_deprecated(test_charger, requests_mock):
     assert amps == 50
 
 
-def test_get_current_capacity(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    amps = test_charger.current_capacity
-    assert amps == 50
+def test_get_current_capacity_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    amps = test_charger_json.current_capacity
+    assert amps == 30
 
 
 def test_get_service_level_deprecated(test_charger, requests_mock):
@@ -132,9 +173,9 @@ def test_get_service_level_deprecated(test_charger, requests_mock):
     assert level == 2
 
 
-def test_get_service_level(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    level = test_charger.service_level
+def test_get_service_level_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    level = test_charger_json.service_level
     assert level == 2
 
 
@@ -145,16 +186,16 @@ def test_get_diode_check_enabled_deprecated(test_charger, requests_mock):
     assert enabled is True
 
 
-def test_get_diode_check_enabled(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    enabled = test_charger.diode_check_enabled
-    assert enabled is True
-
-
 def test_get_vent_required_enabled_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
     with pytest.deprecated_call():
         enabled = test_charger.getVentRequiredEnabled()
+    assert enabled is True
+
+
+def test_get_diode_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.diode_check_enabled
     assert enabled is True
 
 
@@ -171,6 +212,12 @@ def test_get_ground_check_enabled_deprecated(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_vent_required_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.vent_required_enabled
+    assert enabled is True
+
+
 def test_get_ground_check_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.ground_check_enabled
@@ -184,9 +231,21 @@ def test_get_stuck_relay_check_enabled_deprecated(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_ground_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.ground_check_enabled
+    assert enabled is True
+
+
 def test_get_stuck_relay_check_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.stuck_relay_check_enabled
+    assert enabled is True
+
+
+def test_get_stuck_relay_check_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.stuck_relay_check_enabled
     assert enabled is True
 
 
@@ -197,22 +256,16 @@ def test_get_auto_service_level_enabled_deprecated(test_charger, requests_mock):
     assert enabled is False
 
 
-def test_get_auto_service_level_enabled(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    enabled = test_charger.auto_service_level_enabled
-    assert enabled is False
+def test_get_auto_service_level_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.auto_service_level_enabled
+    assert enabled
 
 
 def test_get_auto_start_enabled_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
     with pytest.deprecated_call():
         enabled = test_charger.getAutoStartEnabled()
-    assert enabled is True
-
-
-def test_get_auto_start_enabled(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    enabled = test_charger.auto_start_enabled
     assert enabled is True
 
 
@@ -223,9 +276,21 @@ def test_get_serial_debug_enabled_deprecated(test_charger, requests_mock):
     assert enabled is True
 
 
+def test_get_auto_start_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.auto_start_enabled
+    assert enabled is True
+
+
 def test_get_serial_debug_enabled(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
     enabled = test_charger.serial_debug_enabled
+    assert enabled is True
+
+
+def test_get_serial_debug_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.serial_debug_enabled
     assert enabled is True
 
 
@@ -236,9 +301,9 @@ def test_get_lcd_type_deprecated(test_charger, requests_mock):
     assert lcd_type == 'rgb'
 
 
-def test_get_lcd_type(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    lcd_type = test_charger.lcd_type
+def test_get_lcd_type_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    lcd_type = test_charger_json.lcd_type
     assert lcd_type == 'rgb'
 
 
@@ -249,10 +314,10 @@ def test_get_gfi_self_test_enabled_deprecated(test_charger, requests_mock):
     assert enabled is False
 
 
-def test_get_gfi_self_test_enabled(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/settings.txt'))
-    enabled = test_charger.gfi_self_test_enabled
-    assert enabled is False
+def test_get_gfi_self_test_enabled_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/settings.txt'))
+    enabled = test_charger_json.gfi_self_test_enabled
+    assert enabled
 
 
 def test_get_gfi_trip_count_deprecated(test_charger, requests_mock):
@@ -262,9 +327,9 @@ def test_get_gfi_trip_count_deprecated(test_charger, requests_mock):
     assert count == 0
 
 
-def test_get_gfi_trip_count(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/faults.txt'))
-    count = test_charger.gfi_trip_count
+def test_get_gfi_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.gfi_trip_count
     assert count == 0
 
 
@@ -275,10 +340,9 @@ def test_get_no_ground_trip_count_deprecated(test_charger, requests_mock):
     assert count == 9
 
 
-def test_get_no_ground_trip_count(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/faults.txt'))
-    count = test_charger.no_gnd_trip_count
-    assert count == 9
+def test_get_no_ground_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.no_gnd_trip_count
 
 
 def test_get_stuck_relay_trip_count_deprecated(test_charger, requests_mock):
@@ -287,10 +351,9 @@ def test_get_stuck_relay_trip_count_deprecated(test_charger, requests_mock):
         count = test_charger.getStuckRelayTripCount()
     assert count == 0
 
-
-def test_get_stuck_relay_trip_count(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/faults.txt'))
-    count = test_charger.stuck_relay_trip_count
+def test_get_stuck_relay_trip_count_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/faults.txt'))
+    count = test_charger_json.stuck_relay_trip_count
     assert count == 0
 
 
@@ -349,6 +412,12 @@ def test_get_charge_limit(test_charger, requests_mock):
     assert limit == 0
 
 
+def test_get_charge_limit_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/charge_limit.txt'))
+    limit = test_charger_json.charge_limit
+    assert limit == 0
+
+
 def test_get_voltmeter_scale_factor_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/voltmeter_settings.txt'))
     with pytest.deprecated_call():
@@ -356,9 +425,9 @@ def test_get_voltmeter_scale_factor_deprecated(test_charger, requests_mock):
     assert scale == 0
 
 
-def test_get_voltmeter_scale_factor(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/voltmeter_settings.txt'))
-    scale = test_charger.volt_meter_scale_factor
+def test_get_voltmeter_scale_factor_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/voltmeter_settings.txt'))
+    scale = test_charger_json.volt_meter_scale_factor
     assert scale == 0
 
 
@@ -369,9 +438,9 @@ def test_get_voltmeter_offset_deprecated(test_charger, requests_mock):
     assert offset == 0
 
 
-def test_get_voltmeter_offset(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/voltmeter_settings.txt'))
-    offset = test_charger.volt_meter_offset
+def test_get_voltmeter_offset_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/voltmeter_settings.txt'))
+    offset = test_charger_json.volt_meter_offset
     assert offset == 0
 
 
@@ -379,13 +448,6 @@ def test_get_ambient_threshold_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_settings.txt'))
     with pytest.deprecated_call():
         threshold = test_charger.getAmbientThreshold()
-    assert threshold == 0.0
-    assert type(threshold) == float
-
-
-def test_get_ambient_threshold(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_settings.txt'))
-    threshold = test_charger.ambient_threshold
     assert threshold == 0.0
     assert type(threshold) == float
 
@@ -398,9 +460,23 @@ def test_get_ir_threshold_deprecated(test_charger, requests_mock):
     assert type(threshold) == float
 
 
+def test_get_ambient_threshold_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/temperature_settings.txt'))
+    threshold = test_charger_json.ambient_threshold
+    assert threshold == 0.0
+    assert type(threshold) == float
+
+
 def test_get_ir_threshold(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_settings.txt'))
     threshold = test_charger.ir_threshold
+    assert threshold == 0.0
+    assert type(threshold) == float
+
+
+def test_get_ir_threshold_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/temperature_settings.txt'))
+    threshold = test_charger_json.ir_threshold
     assert threshold == 0.0
     assert type(threshold) == float
 
@@ -413,11 +489,10 @@ def test_get_rtc_temperature_deprecated(test_charger, requests_mock):
     assert type(temperature) == float
 
 
-def test_get_rtc_temperature(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_values.txt'))
-    temperature = test_charger.rtc_temperature
-    assert temperature == 59.2
-    assert type(temperature) == float
+def test_get_rtc_temperature_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/temperature_values.txt'))
+    temperature = test_charger_json.rtc_temperature
+    assert temperature == 58.0
 
 
 def test_get_ambient_temperature_deprecated(test_charger, requests_mock):
@@ -428,24 +503,16 @@ def test_get_ambient_temperature_deprecated(test_charger, requests_mock):
     assert type(temperature) == float
 
 
-def test_get_ambient_temperature(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_values.txt'))
-    temperature = test_charger.ambient_temperature
-    assert temperature == 0.0
-    assert type(temperature) == float
+def test_get_ambient_temperature_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/temperature_values.txt'))
+    temperature = test_charger_json.ambient_temperature
+    assert temperature == 57.0
 
 
 def test_get_ir_temperature_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_values.txt'))
     with pytest.deprecated_call():
         temperature = test_charger.getIRTemperature()
-    assert temperature == 23.0
-    assert type(temperature) == float
-
-
-def test_get_ir_temperature(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/temperature_values.txt'))
-    temperature = test_charger.ir_temperature
     assert temperature == 23.0
     assert type(temperature) == float
 
@@ -461,6 +528,12 @@ def test_get_time(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/time.txt'))
     time = test_charger.time
     assert str(time) == '2000-01-20 08:34:29'
+
+
+def test_get_time_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/time.txt'))
+    time = test_charger_json.time
+    assert str(time) == '2000-02-19 01:40:47'
 
 
 @pytest.mark.parametrize('fixture, expected',
@@ -496,6 +569,15 @@ def test_get_usage_total_deprecated(test_charger, requests_mock, fixture, expect
 
 
 @pytest.mark.parametrize('fixture, expected',
+                         [('v3_responses/usage_plugged.txt', 0.0),])
+def test_get_usage_session_v3(test_charger_json, requests_mock, fixture, expected):
+    requests_mock.post(test_charger_json._url, text=load_fixture(fixture))
+    usage = test_charger_json.usage_session
+    assert usage == expected
+    assert type(usage) == float
+
+
+@pytest.mark.parametrize('fixture, expected',
                          [('v1_responses/usage_unplugged.txt', 12419994.0),
                           ('v1_responses/usage_charging.txt', 12419994.0)])
 def test_get_usage_total(test_charger, requests_mock, fixture, expected):
@@ -520,6 +602,12 @@ def test_get_firmware_version(test_charger, requests_mock):
     assert type(version) == str
 
 
+def test_get_firmware_version_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/version.txt'))
+    version = test_charger_json.firmware_version
+    assert version == '5.0.1'
+
+
 def test_get_protocol_version_deprecated(test_charger, requests_mock):
     requests_mock.post(test_charger._url, text=load_fixture('v1_responses/version.txt'))
     with pytest.deprecated_call():
@@ -533,3 +621,23 @@ def test_get_protocol_version(test_charger, requests_mock):
     version = test_charger.protocol_version
     assert version == '1.0.3'
     assert type(version) == str
+
+
+def test_get_protocol_version_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/version.txt'))
+    version = test_charger_json.protocol_version
+    assert version == '4.0.1'
+    assert type(version) == str
+
+def test_checksum():
+    import openevsewifi
+    strings = ["$OK 1 0^21", "$OK 220 0^20", "$OK 30 0001^22", "$OK 0 -1^0C"]
+    for s in strings:
+        assert openevsewifi.parse_checksum(s) == s.split('^', 1)[0]
+    bad_checksums = ["$OK 1 0^22", "$OK 220 0^30", "$OK 30 0001^f2", "$OK 0 -1^1C", "00^yyy"]
+    for s in bad_checksums:
+        with pytest.raises(openevsewifi.BadChecksum):
+            openevsewifi.parse_checksum(s)
+    no_checksums = ["$OK 1 0", "$OK 220 0", "$OK 30 0001", "$OK 0 -1"]
+    for s in no_checksums:
+        assert openevsewifi.parse_checksum(s) == s

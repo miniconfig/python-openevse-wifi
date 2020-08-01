@@ -1,6 +1,7 @@
 import re
 import requests
 import datetime
+import json
 
 from deprecated import deprecated
 from typing import (
@@ -28,21 +29,80 @@ states = {
 colors = ['off', 'red', 'green', 'yellow', 'blue', 'violet', 'teal', 'white']
 
 
+class BadChecksum(Exception):
+    pass
+
+
+class BadResponse(Exception):
+    pass
+
+
+def parse_checksum(s):
+    """
+    If there is a '^' in given string s, this checks that the xor of utf8 bytes
+    before the '^' equal the hex value specified after '^'.  It returns the
+    string before the '^' on success, and throws an BadChecksum exception on error.
+
+    If there is no '^' in the string, the string is returned.
+    """
+    spl = s.rsplit('^', 1)
+    if len(spl) == 1:
+        return s
+    try:
+        check = int(spl[1], 16)
+    except ValueError:
+        raise BadChecksum(s)
+    datsum = 0
+    for c in spl[0].encode('utf-8'):
+        datsum ^= c
+    if datsum != check:
+        raise BadChecksum(s)
+    return spl[0]
+
+
+def json_parser(s):
+    """
+    Parses the json string provided and checks that
+    the "ret" field has a valid checksum.
+
+    Throws JSONDecodeError if the json is invalid,
+    openevsewifi.BadChecksum if the checksum is invalid,
+    and openevsewifi.BadResponse if the expected "ret"
+    element is not present in the json dictionary.
+    """
+    result = json.loads(s)
+    if "ret" not in result:
+        raise BadResponse(s)
+    parsed = parse_checksum(result["ret"])
+    # for compatibility with xml_parser, strip off the leading $.
+    parsed = parsed[1:]
+    return parsed.split()
+
+
+def xml_parser(s):
+    response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', s)
+    # If we are using version 1
+    # https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
+    if response is None:
+        response = re.search('\\>\\>\\$(.+)\\<p>', s)
+    return response.group(1).split()
+
+
 class Charger:
-    def __init__(self, host: str):
+    def __init__(self, host: str, json=False):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
-        self._url = 'http://' + host + '/r?'
+        if json:
+            self._url = 'http://' + host + '/r?json=1&'
+            self._parseResult = json_parser
+        else:
+            self._url = 'http://' + host + '/r?'
+            self._parseResult = xml_parser
 
     def _send_command(self, command: str) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
         content = requests.post(self._url, data=data)
-        response = re.search('\\<p>&gt;\\$([^\\^]+)(\\^..)?<script', content.text)
-        # If we are using version 1
-        # https://github.com/OpenEVSE/ESP8266_WiFi_v1.x/blob/master/OpenEVSE_RAPI_WiFi_ESP8266.ino#L357
-        if response is None:
-            response = re.search('\\>\\>\\$(.+)\\<p>', content.text)
-        return response.group(1).split()
+        return self._parseResult(content.text)
 
     @deprecated(reason='Use the status property')
     def getStatus(self) -> str:
