@@ -208,7 +208,7 @@ class Charger:
         return int(settings[1])
 
     @deprecated(reason='Use service_level property')
-    def getServiceLevel(self) ->  int:
+    def getServiceLevel(self) -> int:
         return self.service_level
 
     @property
