@@ -37,6 +37,10 @@ class BadResponse(Exception):
     pass
 
 
+class InvalidAuthentication(Exception):
+    pass
+
+
 def parse_checksum(s):
     """
     If there is a '^' in given string s, this checks that the xor of utf8 bytes
@@ -89,7 +93,7 @@ def xml_parser(s):
 
 
 class Charger:
-    def __init__(self, host: str, json=False):
+    def __init__(self, host: str, json: bool = False, username: str = None, password: str = None):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
         if json:
             self._url = 'http://' + host + '/r?json=1&'
@@ -97,12 +101,20 @@ class Charger:
         else:
             self._url = 'http://' + host + '/r?'
             self._parseResult = xml_parser
+        self._username = username
+        self._password = password
 
     def _send_command(self, command: str) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
-        content = requests.post(self._url, data=data)
-        return self._parseResult(content.text)
+        if self._username and self._password:
+            content = requests.post(self._url, data=data, auth=(self._username, self._password))
+        else:
+            content = requests.post(self._url, data=data)
+        if content.status_code == 401:
+            raise InvalidAuthentication
+        else:
+            return self._parseResult(content.text)
 
     @deprecated(reason='Use the status property')
     def getStatus(self) -> str:
@@ -196,7 +208,7 @@ class Charger:
         return int(settings[1])
 
     @deprecated(reason='Use service_level property')
-    def getServiceLevel(self) ->  int:
+    def getServiceLevel(self) -> int:
         return self.service_level
 
     @property

@@ -75,6 +75,7 @@ def test_get_time_limit(test_charger, requests_mock, fixture, expected):
     time_limit = test_charger.time_limit
     assert time_limit == expected
 
+
 @pytest.mark.parametrize('fixture, expected',
                          [('v3_responses/time_limit_unset.txt', 0),
                           ('v3_responses/time_limit_set.txt', 15)])
@@ -109,9 +110,10 @@ def test_get_ammeter_offset(test_charger, requests_mock):
     assert offset == 0
 
 
-def test_get_ammeter_offset_v3(test_charger, requests_mock):
-    requests_mock.post(test_charger._url, text=load_fixture('v1_responses/ammeter.txt'))
-    offset = test_charger.ammeter_offset
+def test_get_ammeter_offset_v3(test_charger_json, requests_mock):
+    requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/ammeter.txt'))
+    offset = test_charger_json.ammeter_offset
+    assert offset == 0
 
 
 def test_get_ammeter_offset_deprecated(test_charger, requests_mock):
@@ -343,6 +345,7 @@ def test_get_no_ground_trip_count_deprecated(test_charger, requests_mock):
 def test_get_no_ground_trip_count_v3(test_charger_json, requests_mock):
     requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/faults.txt'))
     count = test_charger_json.no_gnd_trip_count
+    assert count == 0
 
 
 def test_get_stuck_relay_trip_count_deprecated(test_charger, requests_mock):
@@ -350,6 +353,7 @@ def test_get_stuck_relay_trip_count_deprecated(test_charger, requests_mock):
     with pytest.deprecated_call():
         count = test_charger.getStuckRelayTripCount()
     assert count == 0
+
 
 def test_get_stuck_relay_trip_count_v3(test_charger_json, requests_mock):
     requests_mock.post(test_charger_json._url, text=load_fixture('v3_responses/faults.txt'))
@@ -569,7 +573,7 @@ def test_get_usage_total_deprecated(test_charger, requests_mock, fixture, expect
 
 
 @pytest.mark.parametrize('fixture, expected',
-                         [('v3_responses/usage_plugged.txt', 0.0),])
+                         [('v3_responses/usage_plugged.txt', 0.0)])
 def test_get_usage_session_v3(test_charger_json, requests_mock, fixture, expected):
     requests_mock.post(test_charger_json._url, text=load_fixture(fixture))
     usage = test_charger_json.usage_session
@@ -629,6 +633,7 @@ def test_get_protocol_version_v3(test_charger_json, requests_mock):
     assert version == '4.0.1'
     assert type(version) == str
 
+
 def test_checksum():
     import openevsewifi
     strings = ["$OK 1 0^21", "$OK 220 0^20", "$OK 30 0001^22", "$OK 0 -1^0C"]
@@ -641,3 +646,10 @@ def test_checksum():
     no_checksums = ["$OK 1 0", "$OK 220 0", "$OK 30 0001", "$OK 0 -1"]
     for s in no_checksums:
         assert openevsewifi.parse_checksum(s) == s
+
+
+def test_auth_failure_raises_exception(test_charger_json, requests_mock):
+    from openevsewifi import InvalidAuthentication
+    requests_mock.post(test_charger_json._url, status_code=401)
+    with pytest.raises(InvalidAuthentication):
+        test_charger_json.protocol_version
