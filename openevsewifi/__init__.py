@@ -108,9 +108,9 @@ class Charger:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
         if self._username and self._password:
-            content = requests.post(self._url, data=data, auth=(self._username, self._password))
+            content = requests.get(self._url, params=data, auth=(self._username, self._password))
         else:
-            content = requests.post(self._url, data=data)
+            content = requests.get(self._url, params=data)
         if content.status_code == 401:
             raise InvalidAuthentication
         else:
