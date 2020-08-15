@@ -95,18 +95,20 @@ def xml_parser(s):
 class Charger:
     def __init__(self, host: str, json: bool = False, username: str = None, password: str = None):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
+        self._url = 'http://' + host + '/r'
         if json:
-            self._url = 'http://' + host + '/r?json=1&'
             self._parseResult = json_parser
         else:
-            self._url = 'http://' + host + '/r?'
             self._parseResult = xml_parser
         self._username = username
         self._password = password
+        self._json = json
 
     def _send_command(self, command: str) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
         data = {'rapi': command}
+        if self._json:
+            data['json'] = 1
         if self._username and self._password:
             content = requests.get(self._url, params=data, auth=(self._username, self._password))
         else:
