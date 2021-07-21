@@ -125,7 +125,7 @@ class Charger:
         """Returns the charger's charge status, as a string"""
         command = '$GS'
         status = self._send_command(command)
-        return states[int(status[1])]
+        return states[int(status[1],16)]
 
     @deprecated(reason='Use the charge_time_elapsed property')
     def getChargeTimeElapsed(self) -> int:
@@ -136,7 +136,7 @@ class Charger:
         """Returns the charge time elapsed (in seconds), or 0 if is not currently charging"""
         command = '$GS'
         status = self._send_command(command)
-        if int(status[1]) == 3:
+        if int(status[1],16) == 3:
             return int(status[2])
         else:
             return 0
