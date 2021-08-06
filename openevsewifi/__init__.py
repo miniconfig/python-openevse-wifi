@@ -125,7 +125,7 @@ class Charger:
         """Returns the charger's charge status, as a string"""
         command = '$GS'
         status = self._send_command(command)
-        if isnumeric(status[1]):
+        if status[1].isnumeric():
           base = 10
         else:
           base = 16
@@ -140,7 +140,7 @@ class Charger:
         """Returns the charge time elapsed (in seconds), or 0 if is not currently charging"""
         command = '$GS'
         status = self._send_command(command)
-        if isnumeric(status[1]):
+        if status[1].isnumeric():
           base = 10
         else:
           base = 16
