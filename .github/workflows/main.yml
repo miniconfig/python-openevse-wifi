@@ -15,12 +15,10 @@ jobs:
         python-version: 3.8.0
     - name: Dependencies
       run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-        source $HOME/.poetry/env
+        pipx install poetry
         poetry install
     - name: Run pytest
       run: |
-        source $HOME/.poetry/env
         poetry run python -m pytest --cov=openevsewifi --cov-report=xml --cov-branch --cov-fail-under=85 tests/
     - name: Codecov
       uses: codecov/codecov-action@v1.0.5
@@ -43,12 +41,10 @@ jobs:
         python-version: 3.8.0
     - name: Dependencies
       run: |
-        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-        source $HOME/.poetry/env
+        pipx install poetry
         poetry install --no-dev
     - name: Build
       run: |
-        source $HOME/.poetry/env
         poetry build
     - name: Publish Beta to GitHub
       uses: softprops/action-gh-release@v0.1.5
@@ -64,7 +60,6 @@ jobs:
         POETRY_HTTP_BASIC_TESTPYPI_USERNAME: __token__
         POETRY_HTTP_BASIC_TESTPYPI_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
       run: |
-        source $HOME/.poetry/env
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry publish -r testpypi
     - name: Publish Production Release to GitHub
@@ -81,5 +76,4 @@ jobs:
         POETRY_HTTP_BASIC_PYPI_USERNAME: __token__ 
         POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        source $HOME/.poetry/env
         poetry publish
