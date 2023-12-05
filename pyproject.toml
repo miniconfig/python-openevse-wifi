@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openevsewifi"
-version = "1.1.2"
+version = "2.0.0"
 description = "A python library for communicating with the ESP8266-based wifi module from OpenEVSE"
 authors = ["Michelle Avery <dev@miniconfig.com>"]
 license = "MIT"

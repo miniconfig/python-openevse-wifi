@@ -93,7 +93,7 @@ def xml_parser(s):
 
 
 class Charger:
-    def __init__(self, host: str, json: bool = False, username: str = None, password: str = None):
+    def __init__(self, host: str, json: bool = False, username: str = None, password: str = None, debug: bool = False):
         """A connection to an OpenEVSE charging station equipped with the wifi kit."""
         if json:
             self._url = 'http://' + host + '/r?json=1&'
@@ -103,10 +103,13 @@ class Charger:
             self._parseResult = xml_parser
         self._username = username
         self._password = password
+        self.debug = debug
 
-    def _send_command(self, command: str) -> List[str]:
+    def _send_command(self, command: str, *values) -> List[str]:
         """Sends a command through the web interface of the charger and parses the response"""
-        data = {'rapi': command}
+        data = {'rapi': ' '.join([command] + [str(i) for i in values])}
+        if self.debug:
+            print(data) 
         if self._username and self._password:
             content = requests.post(self._url, data=data, auth=(self._username, self._password))
         else:
@@ -114,7 +117,10 @@ class Charger:
         if content.status_code == 401:
             raise InvalidAuthentication
         else:
-            return self._parseResult(content.text)
+            result = self._parseResult(content.text)
+            if self.debug:
+                print(result)
+            return result
 
     @deprecated(reason='Use the status property')
     def getStatus(self) -> str:
@@ -125,7 +131,7 @@ class Charger:
         """Returns the charger's charge status, as a string"""
         command = '$GS'
         status = self._send_command(command)
-        return states[int(status[1])]
+        return states[int(status[1], base=16)]
 
     @deprecated(reason='Use the charge_time_elapsed property')
     def getChargeTimeElapsed(self) -> int:
@@ -152,6 +158,13 @@ class Charger:
         limit = self._send_command(command)
         return int(limit[1])*15
 
+    @time_limit.setter
+    def time_limit(self, value: int):
+        """Sets the time limit in minutes, charger only supports increments of 15 minutes"""
+        command = '$S3'
+        increments = value // 15
+        self._send_command(command, increments)
+
     @deprecated(reason='Use ammeter_scale_factor property')
     def getAmmeterScaleFactor(self) -> int:
         return self.ammeter_scale_factor
@@ -163,6 +176,12 @@ class Charger:
         settings = self._send_command(command)
         return int(settings[1])
 
+    @ammeter_scale_factor.setter
+    def ammeter_scale_factor(self, scale):
+        """Sets the ammeter's scale factor"""
+        command = '$SA'
+        self._send_command(command, scale, self.ammeter_offset)
+
     @deprecated(reason='Use ammeter_offset property')
     def getAmmeterOffset(self) -> int:
         return self.ammeter_offset
@@ -173,6 +192,12 @@ class Charger:
         command = '$GA'
         settings = self._send_command(command)
         return int(settings[2])
+
+    @ammeter_offset.setter
+    def ammeter_offset(self, offset):
+        """Sets the ammeter's offset"""
+        command = '$SA'
+        self._send_command(command, self.ammeter_scale_factor, offset)
 
     @deprecated(reason='Use min_amps property')
     def getMinAmps(self) -> int:
@@ -207,6 +232,12 @@ class Charger:
         settings = self._send_command(command)
         return int(settings[1])
 
+    @current_capacity.setter
+    def current_capacity(self, capacity):
+        """Set the max allowed amps the charger can draw, in amps"""
+        command = '$SC'
+        self._send_command(command, capacity)
+
     @deprecated(reason='Use service_level property')
     def getServiceLevel(self) -> int:
         return self.service_level
@@ -218,6 +249,12 @@ class Charger:
         settings = self._send_command(command)
         flags = int(settings[2], 16)
         return (flags & 0x0001) + 1
+
+    @service_level.setter
+    def service_level(self, level):
+        """Set the service level (1, 2, A)"""
+        command = '$SL'
+        self._send_command(command, level)
 
     @deprecated(reason='Use diode_check_enabled property')
     def getDiodeCheckEnabled(self) -> bool:
@@ -399,6 +436,12 @@ class Charger:
         limit = self._send_command(command)
         return int(limit[1])
 
+    @charge_limit.setter
+    def charge_limit(self, limit: int):
+        """Set your charge limit in kWh"""
+        command = '$SH'
+        self._send_command(command, limit)
+
     @deprecated(reason='Use volt_meter_scale_factor property')
     def getVoltMeterScaleFactor(self) -> int:
         return self.volt_meter_scale_factor
@@ -531,6 +574,12 @@ class Charger:
         command = '$GU'
         usage = self._send_command(command)
         return float(usage[2])
+
+    @usage_total.setter
+    def usage_total(self, total):
+        """Set (override) the total energy usage in Wh"""
+        command = '$SK'
+        self._send_command(command, total)
 
     @deprecated(reason='Use firmware_version property')
     def getFirmwareVersion(self) -> str:
